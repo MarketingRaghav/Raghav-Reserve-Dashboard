@@ -693,9 +693,9 @@ function toISO0(v){
 }
 const nm=v=>{if(typeof v==='number')return isFinite(v)?v:0;if(v==null)return 0;const f=parseFloat(String(v).replace(/[^\d.\-]/g,''));return isFinite(f)?f:0};
 /* Spelling fixes found in the VPay tracker */
-const VALIAS={'sashikant kulkarni huf':'SHASHIKANT KULKARNI HUF','adt industries':'ADT INDUSTRIES PRIVATE LIMITED'};
+const VALIAS={'sashikant kulkarni huf':'SHASHIKANT KULKARNI HUF','adt industries':'ADT INDUSTRIES PRIVATE LIMITED','trambakeshwar trade pvt ltd':'TRAMBAKESHWAR TRADE PRIVATE LIMITED'};
 const fixVen=v=>VALIAS[v.toLowerCase()]||v;
-const CALIAS={'rock anxhoring':'Rock Anchoring','rock anchroing':'Rock Anchoring'};
+const CALIAS={'rock anxhoring':'Rock Anchoring','rock anchroing':'Rock Anchoring','civil contractor - sub structure':'Civil Contractor - Substructure'};
 function fixCat(c){c=String(c==null?'':c).replace(/\s+/g,' ').trim();if(c===''||c==='0')return '';const k=c.toLowerCase();if(CALIAS[k])return CALIAS[k];if(c===c.toUpperCase()&&c.length>4)c=c.toLowerCase().replace(/\b[a-z]/g,x=>x.toUpperCase());return c.replace(/^./,ch=>ch.toUpperCase())}
 function parseBook(wb){
   /* VPay: read the RESERVE sheet and the Mivan sheet only. Other sheets in the file belong to other projects. */
@@ -731,7 +731,7 @@ function parseRft(wb){
     a.slice(hi+1).forEach(r=>{
       const v=r[H['particulars']];if(v==null||!String(v).trim())return;
       if(H['sr no']!==undefined&&typeof r[H['sr no']]!=='number')return;
-      out.push({v:String(v).replace(/\s+/g,' ').trim(),b:r[H['bill no']]==null?'':String(r[H['bill no']]),dt:H['date']===undefined?'':toISO(r[H['date']]),w:keys.map(k=>nm(r[H[k]])),t:nm(r[H['total weight']]),a:nm(r[H['amount']])});
+      out.push({v:fixVen(String(v).replace(/\s+/g,' ').trim()),b:r[H['bill no']]==null?'':String(r[H['bill no']]),dt:H['date']===undefined?'':toISO(r[H['date']]),w:keys.map(k=>nm(r[H[k]])),t:nm(r[H['total weight']]),a:nm(r[H['amount']])});
     });
     if(out.length)return out;
   }
