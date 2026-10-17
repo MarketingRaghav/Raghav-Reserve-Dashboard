@@ -513,7 +513,8 @@ function renderAge(m){
   const arr=ageMode==='n'?m.ageN:m.age,tot=m.age.slice(0,n).reduce((s,x)=>s+Math.max(x,0),0),mx=Math.max(1,...arr.slice(0,n));
   $('#age').innerHTML=arr.slice(0,n).map((v,i)=>{
     const share=tot>0?Math.max(m.age[i],0)/tot:0;
-    return '<div data-tip="'+lab[i]+'<br>'+cr(m.age[i])+' owed<br>'+m.ageN[i]+' invoices" tabindex="0"><span class="val">'+(v>0.5?(ageMode==='n'?v:cr(v)):'–')+'</span><span class="bw"><span class="bar b'+i+'" style="height:'+(v>0?Math.max(v/mx*100,1.5):0)+'%"></span></span><span class="lab">'+lab[i].replace(' days','<br>days')+'</span><span class="pc c'+i+'">'+(share>0&&share<.01?'<1%':Math.round(share*100)+'%')+'</span></div>'}).join('');
+    return '<div data-ai="'+i+'" role="button" style="cursor:pointer" data-tip="'+lab[i]+'<br>'+cr(m.age[i])+' owed<br>'+m.ageN[i]+' invoices<br>Click for the breakup" tabindex="0"><span class="val">'+(v>0.5?(ageMode==='n'?v:cr(v)):'–')+'</span><span class="bw"><span class="bar b'+i+'" style="height:'+(v>0?Math.max(v/mx*100,1.5):0)+'%"></span></span><span class="lab">'+lab[i].replace(' days','<br>days')+'</span><span class="pc c'+i+'">'+(share>0&&share<.01?'<1%':Math.round(share*100)+'%')+'</span></div>'}).join('');
+  document.querySelectorAll('#age [data-ai]').forEach(el=>{const t=()=>openAge(+el.dataset.ai);el.addEventListener('click',t);el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();t()}})});
   $('#agenote').innerHTML=m.old>0.5?'<div class="alert"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg><span><b>'+cr(m.old)+'</b> ('+pc(m.old/Math.max(1,m.age.slice(0,n).reduce((x,y)=>x+Math.max(y,0),0)))+') of outstanding is more than 30 days past invoice date.</span></div>':'<p class="note">'+(m.owed>0.5?'Nothing is more than 30 days past invoice date.':'Nothing outstanding for this selection.')+'</p>';
 }
 
@@ -631,8 +632,8 @@ function renderWeek(){
   const W=WB.map(([a,b])=>{
     const lo=dd(a),hi=dd(b),inv=rs.filter(r=>r.d&&r.d>=lo&&r.d<=hi);
     const w={a,b,inv,raised:0,paid:0,tds:0,pend:0,unset:0,base:0,out:0,nOut:0,pv:new Map()};
-    inv.forEach(r=>{const s=invSt(r);w.raised+=r.i||0;w.paid+=s.paid;w.tds+=s.tds;w.pend+=s.pend;w.unset+=s.unset;w.base+=s.base});
-    rs.forEach(r=>r.y.forEach(([d,q])=>{if(d&&d>=lo&&d<=hi){w.out+=q;w.nOut++;const k=r.v.toLowerCase(),o=w.pv.get(k)||{n:r.v,amt:0};o.amt+=q;w.pv.set(k,o)}}));
+    inv.forEach(r=>{const s=invSt(r);w.raised+=r.i||0;w.paid+=s.paid+s.tds;w.pend+=s.pend;w.unset+=s.unset;w.base+=s.base});
+    rs.forEach(r=>{const te=r.y.reduce((a,e)=>a+e[1],0),tk=te>0?(r.x||0)/te:0;r.y.forEach(([d,q])=>{if(d&&d>=lo&&d<=hi){const a=q*(1+tk);w.out+=a;w.nOut++;const k=r.v.toLowerCase(),o=w.pv.get(k)||{n:r.v,amt:0};o.amt+=a;w.pv.set(k,o)}})});
     return w});
   const M2=W.reduce((o,w)=>({n:o.n+w.inv.length,raised:o.raised+w.raised,out:o.out+w.out,nOut:o.nOut+w.nOut,pend:o.pend+w.pend,unset:o.unset+w.unset}),{n:0,raised:0,out:0,nOut:0,pend:0,unset:0});
   if(dr.wk==null||dr.wk>=W.length||dr.wkm!==ym){let k=0;W.forEach((w,i)=>{if(w.inv.length||w.out)k=i});dr.wk=k;dr.wkm=ym}
@@ -646,26 +647,26 @@ function renderWeek(){
     const gx=L+i*gw,cx=gx+gw/2,x1=cx-bw-3,x2=cx+3,on=i===dr.wk;
     svg+='<g class="wg" data-w="'+i+'" tabindex="0" role="button" aria-label="Week '+(i+1)+'"><title>W'+(i+1)+' · raised '+cr(w.raised)+' · paid out '+cr(w.out)+' · pending '+cr(w.pend)+'</title><rect x="'+(gx+2)+'" y="2" width="'+(gw-4)+'" height="'+(CH-4)+'" rx="8" class="wbg'+(on?' on':'')+'"/>';
     let y=bot;
-    [[w.paid,'var(--paid)'],[w.tds,'color-mix(in srgb,var(--paid) 45%,var(--surface))'],[w.pend,'var(--owed)'],[w.unset,'url(#hz)']].forEach(([v,f])=>{if(v>0){const hh=Math.max(1.5,sy(v));y-=hh;svg+='<rect x="'+x1+'" y="'+y.toFixed(1)+'" width="'+bw+'" height="'+hh.toFixed(1)+'" fill="'+f+'" rx="2"/>'}});
+    [[w.paid,'var(--paid)'],[w.pend,'var(--owed)'],[w.unset,'url(#hz)']].forEach(([v,f])=>{if(v>0){const hh=Math.max(1.5,sy(v));y-=hh;svg+='<rect x="'+x1+'" y="'+y.toFixed(1)+'" width="'+bw+'" height="'+hh.toFixed(1)+'" fill="'+f+'" rx="2"/>'}});
     if(w.base>0&&(!narrow||on))svg+='<text x="'+(x1+bw/2)+'" y="'+(y-4).toFixed(1)+'" text-anchor="middle" class="wl">'+cr(w.raised)+'</text>';
     if(w.out>0){const hh=Math.max(1.5,sy(w.out));svg+='<rect x="'+x2+'" y="'+(bot-hh).toFixed(1)+'" width="'+bw+'" height="'+hh.toFixed(1)+'" rx="2" style="fill:color-mix(in srgb,var(--accent) 22%,var(--surface));stroke:var(--accent);stroke-width:1.2"/>'+((!narrow||on)?'<text x="'+(x2+bw/2)+'" y="'+(bot-hh-4).toFixed(1)+'" text-anchor="middle" class="wl">'+cr(w.out)+'</text>':'')}
     svg+='<line x1="'+(gx+8)+'" x2="'+(gx+gw-8)+'" y1="'+bot+'" y2="'+bot+'" class="wax"/><text x="'+cx+'" y="'+(bot+16)+'" text-anchor="middle" class="wk1'+(on?' on':'')+'">W'+(i+1)+'</text><text x="'+cx+'" y="'+(bot+29)+'" text-anchor="middle" class="wl2">'+w.a+'–'+w.b+'</text></g>';
   });
   svg+='</svg>';
-  h+='<div class="wchart">'+svg+'<div class="wleg"><span><i class="s1"></i>Paid</span><span><i class="s2"></i>TDS</span><span><i class="s3"></i>Pending</span>'+(M2.unset>0.5?'<span><i class="s4"></i>Due not set</span>':'')+'<span><i class="so"></i>Paid out in week</span></div></div>';
+  h+='<div class="wchart">'+svg+'<div class="wleg"><span><i class="s1"></i>Paid + TDS</span><span><i class="s3"></i>Pending</span>'+(M2.unset>0.5?'<span><i class="s4"></i>Due not set</span>':'')+'<span><i class="so"></i>Paid out in week</span></div></div>';
   /* selected week */
   h+='<div class="wsel"><h3>W'+(dr.wk+1)+' <small>'+sel.a+'–'+sel.b+' '+mn+'</small></h3></div><div class="wcols">';
   const g=new Map();
-  sel.inv.forEach(r=>{const k=r.v.toLowerCase(),o=g.get(k)||{n:r.v,cats:new Set(),amt:0,paid:0,tds:0,pend:0,unset:0,rs:[]};const s=invSt(r);o.cats.add(r.c||'Uncategorised');o.amt+=r.i||0;o.paid+=s.paid;o.tds+=s.tds;o.pend+=s.pend;o.unset+=s.unset;o.rs.push([r,s]);g.set(k,o)});
+  sel.inv.forEach(r=>{const k=r.v.toLowerCase(),o=g.get(k)||{n:r.v,cats:new Set(),amt:0,paid:0,tds:0,pend:0,unset:0,rs:[]};const s=invSt(r);o.cats.add(r.c||'Uncategorised');o.amt+=r.i||0;o.paid+=s.paid+s.tds;o.pend+=s.pend;o.unset+=s.unset;o.rs.push([r,s]);g.set(k,o)});
   h+='<section class="wcol"><h4>Raised <b>'+sel.inv.length+'</b></h4>';
   if(!g.size)h+='<p class="wempty">No invoices this week</p>';
   [...g.entries()].sort((x,y)=>y[1].amt-x[1].amt).forEach(([k,o])=>{
     const cl=[...o.cats],key='v'+dr.wk+'|'+k,all=dr.open[key],list=all?o.rs:o.rs.slice(0,8);
-    h+='<div class="vt"><div class="vh"><b>'+esc(niceName(o.n))+'</b><em>'+esc(cl.length>1?'Mixed':cl[0])+'</em></div><div class="va">'+cr(o.amt)+'</div>'+sbar(o.paid,o.tds,o.pend,o.unset)+'<div class="vn">'+(o.paid>0?'<span class="d1">'+cr(o.paid)+'</span>':'')+(o.tds>0.5?'<span class="d2">'+cr(o.tds)+'</span>':'')+(o.pend>0.5?'<span class="d3">'+cr(o.pend)+'</span>':'')+(o.unset>0.5?'<span class="d4">'+cr(o.unset)+'</span>':'')+'</div><div class="ig">';
+    h+='<div class="vt"><div class="vh"><b>'+esc(niceName(o.n))+'</b><em>'+esc(cl.length>1?'Mixed':cl[0])+'</em></div><div class="va">'+cr(o.amt)+'</div>'+sbar(o.paid,0,o.pend,o.unset)+'<div class="vn">'+(o.paid>0?'<span class="d1">'+cr(o.paid)+'</span>':'')+(o.pend>0.5?'<span class="d3">'+cr(o.pend)+'</span>':'')+(o.unset>0.5?'<span class="d4">'+cr(o.unset)+'</span>':'')+'</div><div class="ig">';
     list.forEach(([r,s])=>{
       const pl=r.y.length?r.y.map(([d,q])=>fdate(d)+' '+cr(q)).join(' · '):'No payment yet';
       const pill=s.st==='paid'?'Paid':s.st==='noset'?'Due not set':s.st==='part'?cr(s.pend)+' left':'Unpaid';
-      h+='<div class="it st-'+s.st+'" title="'+esc((r.t||'')+' · due '+cr(r.due)+(r.x?' · TDS '+cr(r.x):'')+' · '+pl)+'"><div class="ih"><span>'+esc(r.n||'–')+'</span><em>'+esc(fdate(r.d))+'</em></div><b>'+cr(r.i||0)+'</b>'+sbar(s.paid,s.tds,s.pend,s.unset)+'<u>'+pill+'</u></div>'});
+      h+='<div class="it st-'+s.st+'" title="'+esc((r.t||'')+' · due '+cr(r.due)+(r.x?' · incl. TDS '+cr(r.x):'')+' · '+pl)+'"><div class="ih"><span>'+esc(r.n||'–')+'</span><em>'+esc(fdate(r.d))+'</em></div><b>'+cr(r.i||0)+'</b>'+sbar(s.paid+s.tds,0,s.pend,s.unset)+'<u>'+pill+'</u></div>'});
     if(o.rs.length>8)h+='<button type="button" class="more" data-k="'+esc(key)+'">'+(all?'Show less':'+'+(o.rs.length-8)+' more')+'</button>';
     h+='</div></div>'});
   h+='</section><section class="wcol"><h4>Paid out <b>'+cr(sel.out)+'</b></h4>';
@@ -682,9 +683,45 @@ function renderWeek(){
   document.querySelectorAll('#dr-b .wg').forEach(el=>{const t=()=>{dr.wk=+el.dataset.w;renderDr()};el.addEventListener('click',t);el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();t()}})});
   document.querySelectorAll('#dr-b .more').forEach(b=>b.addEventListener('click',()=>{dr.open[b.dataset.k]=!dr.open[b.dataset.k];renderDr()}));
 }
+function renderAgeDr(){
+  const lab=['0–30 days','31–60 days','61–90 days','Over 90 days','No date'],ref=refISO(),rs=filtered();
+  const bk=r=>{if(!r.d)return 4;const g=dayDiff(ref,r.d);return g<=30?0:g<=60?1:g<=90?2:3};
+  const L=rs.filter(r=>r.due-r.x-r.p>0.5).map(r=>({r,o:r.due-r.x-r.p,b:bk(r),g:r.d?dayDiff(ref,r.d):null}));
+  const tot=[0,0,0,0,0],cnt=[0,0,0,0,0];L.forEach(x=>{tot[x.b]+=x.o;cnt[x.b]++});
+  const i=dr.age,sel=L.filter(x=>x.b===i),sum=tot[i],all=tot.reduce((a,b)=>a+b,0)||1;
+  let h='<div class="seg" role="group" aria-label="Age">'+[0,1,2,3,4].filter(k=>cnt[k]||k===i).map(k=>'<button type="button" data-ai="'+k+'" aria-pressed="'+(k===i)+'">'+lab[k].replace(' days','d')+'</button>').join('')+'</div>';
+  const vs=new Set(sel.map(x=>x.r.v.toLowerCase())).size;
+  h+='<div class="wsum"><div class="wt t3"><i>Owed</i><b>'+cr(sum)+'</b><s>'+Math.round(sum/all*100)+'% of outstanding</s></div><div class="wt t1"><i>Invoices</i><b>'+sel.length+'</b><s>'+vs+' vendors</s></div>'+(sel.length&&i<4?'<div class="wt t2"><i>Oldest</i><b>'+Math.max(...sel.map(x=>x.g))+' d</b><s>since invoice date</s></div>':'')+'</div>';
+  /* by category */
+  const cg=new Map();sel.forEach(x=>{const k=x.r.c||'Uncategorised';cg.set(k,(cg.get(k)||0)+x.o)});
+  const cl=[...cg.entries()].sort((a,b)=>b[1]-a[1]),cm=cl.length?cl[0][1]:1,csh=dr.open.ac?cl:cl.slice(0,6);
+  h+='<div class="wcols"><section class="wcol"><h4>By vendor <b>'+vs+'</b></h4>';
+  const vg=new Map();sel.forEach(x=>{const k=x.r.v.toLowerCase(),o=vg.get(k)||{n:x.r.v,owed:0,cats:new Set(),rs:[]};o.owed+=x.o;o.cats.add(x.r.c||'Uncategorised');o.rs.push(x);vg.set(k,o)});
+  const vl=[...vg.entries()].sort((a,b)=>b[1].owed-a[1].owed),vsh=dr.open.av?vl:vl.slice(0,10);
+  if(!vl.length)h+='<p class="wempty">Nothing outstanding here</p>';
+  vsh.forEach(([k,o])=>{
+    const key='a|'+k,all2=dr.open[key],rl=o.rs.sort((a,b)=>b.o-a.o),list=all2?rl:rl.slice(0,8),cl2=[...o.cats];
+    const paid=o.rs.reduce((a,x)=>a+x.r.p+x.r.x,0);
+    h+='<div class="vt"><div class="vh"><b>'+esc(niceName(o.n))+'</b><em>'+esc(cl2.length>1?'Mixed':cl2[0])+'</em></div><div class="va">'+cr(o.owed)+'</div>'+sbar(0,0,o.owed,0)+'<div class="ig" style="margin-top:8px">';
+    list.forEach(x=>{const r=x.r;h+='<div class="it st-'+(x.g!=null&&x.g>90?'open':'part')+'" title="'+esc((r.t||'')+' · invoiced '+cr(r.i||0)+' · due '+cr(r.due)+(r.x?' · TDS '+cr(r.x):'')+' · paid '+cr(r.p))+'"><div class="ih"><span>'+esc(r.n||'–')+'</span><em>'+esc(fdate(r.d))+'</em></div><b>'+cr(x.o)+'</b>'+sbar(r.p+r.x,0,x.o,0)+'<u>'+(x.g!=null?x.g+' days':'No date')+'</u></div>'});
+    if(rl.length>8)h+='<button type="button" class="more" data-k="'+esc(key)+'">'+(all2?'Show less':'+'+(rl.length-8)+' more')+'</button>';
+    h+='</div></div>'});
+  if(vl.length>10)h+='<button type="button" class="more" data-k="av" style="display:block;width:100%">'+(dr.open.av?'Show less':'+'+(vl.length-10)+' more vendors')+'</button>';
+  h+='</section><section class="wcol"><h4>By category <b>'+cr(sum)+'</b></h4>';
+  csh.forEach(([k,v])=>{h+='<div class="pr"><span class="pn">'+esc(k)+'</span><span class="pb"><i style="width:'+Math.max(2,v/cm*100).toFixed(1)+'%;background:var(--owed)"></i></span><b>'+cr(v)+'</b></div>'});
+  if(cl.length>6)h+='<button type="button" class="more" data-k="ac" style="display:block;width:100%;margin-top:6px">'+(dr.open.ac?'Show less':'+'+(cl.length-6)+' more')+'</button>';
+  h+='</section></div>';
+  $('#dr-t').textContent='Outstanding · '+lab[i];
+  $('#dr-s').textContent='';
+  $('#dr-b').innerHTML=h;
+  document.querySelectorAll('#dr-b [data-ai]').forEach(b=>b.addEventListener('click',()=>{dr.age=+b.dataset.ai;dr.open={};renderDr()}));
+  document.querySelectorAll('#dr-b .more').forEach(b=>b.addEventListener('click',()=>{dr.open[b.dataset.k]=!dr.open[b.dataset.k];renderDr()}));
+}
+function openAge(i){dr={k:'',v:'ven',open:{},week:'',age:i};$('#dr').hidden=false;$('#dr-bg').hidden=false;renderDr();$('#dr-x').focus()}
 function openWeek(ym){dr={k:'',v:'ven',open:{},week:ym,wk:null};$('#dr').hidden=false;$('#dr-bg').hidden=false;renderDr();$('#dr-x').focus()}
 function renderDr(){
-  $('#dr .drbar').hidden=!!dr.week;
+  $('#dr .drbar').hidden=!!dr.week||dr.age!=null;
+  if(dr.age!=null){$('#dr').classList.add('wide');renderAgeDr();return}
   if(dr.week){$('#dr').classList.add('wide');renderWeek();return}
   const isR=isRft(dr.k)&&RFT.length;
   $('#drsz').hidden=!isR;if(!isR&&dr.v==='size')dr.v='ven';
