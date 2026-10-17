@@ -471,10 +471,10 @@ function renderKpis(m,n){
   const i=t=>'<i class="info" tabindex="0" data-tip="'+esc(t)+'">i</i>';
   const chip='';
   const T=[
-    ['doc','Total invoiced',i('Sum of Invoice Amount in the tracker, up to the date shown. A proforma and its tax invoice can both be counted here, so this can be higher than Amount Due.'),cr(m.inv),n+' invoices',''],
+    ['doc','Total invoiced',i('Sum of Invoice Amount in the tracker, up to the date shown. A proforma and its tax invoice can both be counted here.'),cr(m.inv),n+' invoices',''],
     ['coin','Total paid',i('Cash paid to vendors, up to the date shown. TDS is not included.'),cr(m.paid),m.nPay+' payments',''],
     ['tax','TDS paid',i('Tax deducted at source on these invoices.'),cr(m.tds),'on '+m.nTds+' invoices',''],
-    ['alarm','Outstanding',i('Amount Due minus TDS minus paid, for invoices with a balance.'),cr(m.owed),m.nOwed+' invoices with a balance',chip]
+    ['alarm','Outstanding',i('Invoice Amount minus TDS minus paid.'),cr(m.owed),m.nOwed+' invoices with a balance',chip]
   ];
   $('#kpis').innerHTML=T.map(x=>'<div class="kpi"><span class="ic">'+ICON[x[0]]+'</span><div class="kb"><div class="l"><span class="lt">'+x[1]+'</span>'+x[2]+'</div><div class="v">'+x[3]+'</div><div class="s">'+x[4]+'</div></div>'+x[5]+'</div>').join('');
 }
@@ -618,12 +618,9 @@ let dr={k:'',v:'ven',open:{},week:''};
 function drRows(){return BASE.filter(r=>(r.c||'Uncategorised')===dr.k&&(!flt.ven||r.v.toLowerCase()===flt.ven)&&(!flt.typ||(r.t||'Not stated')===flt.typ))}
 function weekBlocks(ym){const [y,mo]=ym.split('-').map(Number),last=new Date(y,mo,0).getDate(),W=[];for(let st=1;st<=last;st+=7)W.push([st,Math.min(st+6,last)]);return W}
 function invSt(r){
-  const due=r.due||0,paid=r.p||0,tds=r.x||0;let pend=0,unset=0,base;
-  if(due>0.5){pend=Math.max(0,due-tds-paid);base=Math.max(due,paid+tds)}
-  else if(paid+tds>0.5){base=paid+tds}
-  else{unset=r.i||0;base=unset}
-  const st=unset>0?'noset':pend<=0.5?'paid':(paid+tds>0.5?'part':'open');
-  return {paid,tds,pend,unset,base,st};
+  const inv=r.i||0,paid=r.p||0,tds=r.x||0,pend=Math.max(0,inv-tds-paid),base=Math.max(inv,paid+tds);
+  const st=pend<=0.5?'paid':(paid+tds>0.5?'part':'open');
+  return {paid,tds,pend,unset:0,base,st};
 }
 function sbar(p,t,d,u){const T=p+t+d+u||1,w=x=>(x/T*100).toFixed(2)+'%';return '<div class="sb">'+(p>0?'<i class="s1" style="width:'+w(p)+'"></i>':'')+(t>0?'<i class="s2" style="width:'+w(t)+'"></i>':'')+(d>0?'<i class="s3" style="width:'+w(d)+'"></i>':'')+(u>0?'<i class="s4" style="width:'+w(u)+'"></i>':'')+'</div>'}
 function renderWeek(){
@@ -666,7 +663,7 @@ function renderWeek(){
     list.forEach(([r,s])=>{
       const pl=r.y.length?r.y.map(([d,q])=>fdate(d)+' '+cr(q)).join(' · '):'No payment yet';
       const pill=s.st==='paid'?'Paid':s.st==='noset'?'Due not set':s.st==='part'?cr(s.pend)+' left':'Unpaid';
-      h+='<div class="it st-'+s.st+'" title="'+esc((r.t||'')+' · due '+cr(r.due)+(r.x?' · incl. TDS '+cr(r.x):'')+' · '+pl)+'"><div class="ih"><span>'+esc(r.n||'–')+'</span><em>'+esc(fdate(r.d))+'</em></div><b>'+cr(r.i||0)+'</b>'+sbar(s.paid+s.tds,0,s.pend,s.unset)+'<u>'+pill+'</u></div>'});
+      h+='<div class="it st-'+s.st+'" title="'+esc((r.t||'')+(r.x?' · incl. TDS '+cr(r.x):'')+' · '+pl)+'"><div class="ih"><span>'+esc(r.n||'–')+'</span><em>'+esc(fdate(r.d))+'</em></div><b>'+cr(r.i||0)+'</b>'+sbar(s.paid+s.tds,0,s.pend,s.unset)+'<u>'+pill+'</u></div>'});
     if(o.rs.length>8)h+='<button type="button" class="more" data-k="'+esc(key)+'">'+(all?'Show less':'+'+(o.rs.length-8)+' more')+'</button>';
     h+='</div></div>'});
   h+='</section><section class="wcol"><h4>Paid out <b>'+cr(sel.out)+'</b></h4>';
@@ -703,7 +700,7 @@ function renderAgeDr(){
     const key='a|'+k,all2=dr.open[key],rl=o.rs.sort((a,b)=>b.o-a.o),list=all2?rl:rl.slice(0,8),cl2=[...o.cats];
     const paid=o.rs.reduce((a,x)=>a+x.r.p+x.r.x,0);
     h+='<div class="vt"><div class="vh"><b>'+esc(niceName(o.n))+'</b><em>'+esc(cl2.length>1?'Mixed':cl2[0])+'</em></div><div class="va">'+cr(o.owed)+'</div>'+sbar(0,0,o.owed,0)+'<div class="ig" style="margin-top:8px">';
-    list.forEach(x=>{const r=x.r;h+='<div class="it st-'+(x.g!=null&&x.g>90?'open':'part')+'" title="'+esc((r.t||'')+' · invoiced '+cr(r.i||0)+' · due '+cr(r.due)+(r.x?' · TDS '+cr(r.x):'')+' · paid '+cr(r.p))+'"><div class="ih"><span>'+esc(r.n||'–')+'</span><em>'+esc(fdate(r.d))+'</em></div><b>'+cr(x.o)+'</b>'+sbar(r.p+r.x,0,x.o,0)+'<u>'+(x.g!=null?x.g+' days':'No date')+'</u></div>'});
+    list.forEach(x=>{const r=x.r;h+='<div class="it st-'+(x.g!=null&&x.g>90?'open':'part')+'" title="'+esc((r.t||'')+' · invoiced '+cr(r.i||0)+(r.x?' · TDS '+cr(r.x):'')+' · paid '+cr(r.p))+'"><div class="ih"><span>'+esc(r.n||'–')+'</span><em>'+esc(fdate(r.d))+'</em></div><b>'+cr(x.o)+'</b>'+sbar(r.p+r.x,0,x.o,0)+'<u>'+(x.g!=null?x.g+' days':'No date')+'</u></div>'});
     if(rl.length>8)h+='<button type="button" class="more" data-k="'+esc(key)+'">'+(all2?'Show less':'+'+(rl.length-8)+' more')+'</button>';
     h+='</div></div>'});
   if(vl.length>10)h+='<button type="button" class="more" data-k="av" style="display:block;width:100%">'+(dr.open.av?'Show less':'+'+(vl.length-10)+' more vendors')+'</button>';
@@ -741,7 +738,7 @@ function renderDr(){
       h+='<tr class="vrow" data-k="'+esc(k)+'" tabindex="0"><td><span class="car">'+(op?'▾':'▸')+'</span>'+esc(niceName(o.n))+'</td><td>'+o.c+'</td><td><b>'+cr(o.p+o.x)+'</b></td><td>'+(o.o>0.5?cr(o.o):'–')+'</td></tr>';
       if(op)o.rs.forEach(r=>{
         const ps=r.y.length?r.y.map(([d,a])=>fdate(d)+': '+cr(a)).join(' · '):'No payment yet';
-        h+='<tr class="sub"><td colspan="4">Invoice '+esc(fdate(r.d))+(r.t?' ('+esc(r.t)+')':'')+', billed '+cr(r.due)+(r.x?', TDS '+cr(r.x):'')+'<br>'+esc(ps)+'</td></tr>'});
+        h+='<tr class="sub"><td colspan="4">Invoice '+esc(fdate(r.d))+(r.t?' ('+esc(r.t)+')':'')+', invoiced '+cr(r.i||0)+(r.x?', TDS '+cr(r.x):'')+'<br>'+esc(ps)+'</td></tr>'});
     });
     h+='</tbody></table>';
   }else{
@@ -819,7 +816,7 @@ function parseBook(wb){
     const hi=a.findIndex((r,i)=>i<60&&r.some(c=>norm(c)==='company name'));
     if(hi<0)return;
     const H={};a[hi].forEach((c,i)=>{if(c!=null&&H[norm(c)]===undefined)H[norm(c)]=i});
-    if(H['amount due (manual entry)']===undefined||H['amount paid 1']===undefined)return;
+    if(H['invoice amount']===undefined||H['amount paid 1']===undefined)return;
     let n=0;
     a.slice(hi+1).forEach(r=>{
       const g=k=>H[k]===undefined?null:r[H[k]],v=g('company name');
@@ -827,7 +824,7 @@ function parseBook(wb){
       if(['x','0'].indexOf(norm(v))>=0&&!nm(g('invoice amount')))return;
       const y=[];['1','2','3','4'].forEach(i=>{const x=nm(g('amount paid '+i));if(x)y.push([toISO(g('payment date '+i)),x])});
       const pr=g('amount paid');
-      out.push({v:fixVen(String(v).replace(/\s+/g,' ').trim()),c:fixCat(H['sub category']!==undefined?g('sub category'):g('category')),t:String(g('invoice type')||'').trim(),n:String(g('invoice number')==null?'':g('invoice number')).trim(),d:toISO(g('invoice date')),i:nm(g('invoice amount')),due:nm(g('amount due (manual entry)')),p:pr!=null&&pr!==''?nm(pr):y.reduce((s,q)=>s+q[1],0),x:nm(g('tds paid')),y});n++;
+      out.push({v:fixVen(String(v).replace(/\s+/g,' ').trim()),c:fixCat(H['sub category']!==undefined?g('sub category'):g('category')),t:String(g('invoice type')||'').trim(),n:String(g('invoice number')==null?'':g('invoice number')).trim(),d:toISO(g('invoice date')),i:nm(g('invoice amount')),due:nm(g('invoice amount')),p:pr!=null&&pr!==''?nm(pr):y.reduce((s,q)=>s+q[1],0),x:nm(g('tds paid')),y});n++;
     });
     if(n)used.push(sn);
   });
@@ -879,7 +876,7 @@ const COLS='id,uploaded_at,uploaded_by,source_name,last_invoice,last_payment,n_r
 async function loadLatest(first){
   const q=await rest('snapshots?select='+COLS+'&order=uploaded_at.desc&limit=1');
   if(!q||!q.length){rows=[];RFT=[];META=null;LATEST=0;buildFilters();if(!first)render();return}
-  const s=q[0];rows=s.data||[];RFT=s.rft||[];LATEST=s.id;META={up:s.uploaded_at,by:s.uploaded_by,src:s.source_name,li:s.last_invoice,lp:s.last_payment};
+  const s=q[0];rows=(s.data||[]).map(r=>Object.assign({},r,{due:r.i||0}));RFT=s.rft||[];LATEST=s.id;META={up:s.uploaded_at,by:s.uploaded_by,src:s.source_name,li:s.last_invoice,lp:s.last_payment};
   todayISO=localISO(s.uploaded_at);till='';$('#till').max=todayISO;$('#till').value=todayISO;buildFilters();if(!first)render();
 }
 async function checkNew(){if(document.hidden||!SES)return;try{const q=await rest('snapshots?select=id&order=uploaded_at.desc&limit=1');if(q&&q.length&&q[0].id!==LATEST){await loadLatest(false);say('Updated to the newest upload.')}}catch(e){}}
