@@ -290,6 +290,31 @@ i.so{background:color-mix(in srgb,var(--accent) 22%,var(--surface));border:1.5px
 .pr{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) auto;gap:8px;align-items:center;font-size:12px;padding:4px 0;border-bottom:1px solid var(--line)}
 .pn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pb{height:7px;border-radius:5px;background:var(--track);overflow:hidden;display:block}.pb i{display:block;height:100%;background:var(--accent);border-radius:5px}
 @media (max-width:820px){.wcols{grid-template-columns:minmax(0,1fr)}.wsum .wt b{font-size:18px}}
+
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.panel{position:relative}
+.panel.det>header .seg,.panel.det>.age,.panel.det>#agenote{display:none}
+.pdet{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px}
+.pdh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pdh .back{font:inherit;font-size:12px;color:var(--accent);background:none;border:1px solid var(--edge);border-radius:20px;padding:2px 10px;cursor:pointer}
+.pdh b{font-family:var(--f-hero);font-size:16px}.pdh span{margin-left:auto;font-family:var(--f-hero);font-size:16px;color:var(--owed)}
+.pst{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2)}.pst b{color:var(--ink)}
+.pdet .vt{margin-bottom:0}
+.pdet .ig{grid-template-columns:repeat(auto-fill,minmax(112px,1fr))}
+.wksel select{font:inherit;font-size:12px;padding:3px 8px;border:1px solid var(--edge);border-radius:6px;background:var(--surface);color:var(--ink);cursor:pointer}
+.wkbody{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.wkc{min-width:0;display:flex;flex-direction:column;gap:4px}.wkc svg{width:100%;height:auto;max-height:100%}
+.wkm{font-size:12px;color:var(--ink2)}.wkm b{color:var(--ink);font-family:var(--f-hero);font-size:16px}
+.wkl{min-width:0;overflow:auto}
+.wkl .wlh{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:4px;margin-bottom:2px}
+.wkl .wlh b{font-family:var(--f-hero);font-size:14px;color:var(--ink);letter-spacing:0;text-transform:none}
+@keyframes wkflash{from{box-shadow:0 0 0 3px var(--owed)}to{box-shadow:var(--shadow)}}
+.panel.flash{animation:wkflash 1s ease-out}
+#ctc td,#ctc th{padding-top:3px;padding-bottom:3px;font-size:12px}
+@media (min-width:1000px){.row4{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}}
+@media (max-width:999px){.pdet{max-height:70vh}}
+@media (max-width:640px){.wkbody{grid-template-columns:minmax(0,1fr)}.wkl{max-height:260px}}
+@media (min-width:641px) and (max-width:999px){.row4{grid-template-columns:minmax(0,1fr)}}
 </style>
 </head>
 <body>
@@ -341,6 +366,7 @@ i.so{background:color-mix(in srgb,var(--accent) 22%,var(--surface));border:1.5px
       </header>
       <div class="age" id="age"></div>
       <div id="agenote"></div>
+      <div class="pdet" id="agedet" hidden></div>
     </section>
 
     <section class="panel">
@@ -354,12 +380,17 @@ i.so{background:color-mix(in srgb,var(--accent) 22%,var(--surface));border:1.5px
     </section>
   </main>
 
-  <section class="row row4 nobud">
+  <section class="row row4">
     <section class="panel">
       <header><h2>Category-wise detail</h2>
         <form class="add" id="addform" hidden><input id="newcat" type="text" placeholder="Add a category, e.g. Finishing" aria-label="New category name"><button class="btn" type="submit">Add</button></form>
       </header>
       <div class="tw"><table id="ctc"></table></div>
+    </section>
+
+    <section class="panel" id="wkpanel">
+      <header><h2 id="wkh">Week-wise payments</h2><label class="wksel"><span class="sr">Month</span><select id="wkmon" aria-label="Select month"></select></label></header>
+      <div class="wkbody"><div class="wkc" id="wkchart"></div><div class="wkl" id="wklist"></div></div>
     </section>
 
     <section class="panel" id="donutpanel" hidden>
@@ -514,7 +545,7 @@ function renderAge(m){
   $('#age').innerHTML=arr.slice(0,n).map((v,i)=>{
     const share=tot>0?Math.max(m.age[i],0)/tot:0;
     return '<div data-ai="'+i+'" role="button" style="cursor:pointer" data-tip="'+lab[i]+'<br>'+cr(m.age[i])+' owed<br>'+m.ageN[i]+' invoices<br>Click for the breakup" tabindex="0"><span class="val">'+(v>0.5?(ageMode==='n'?v:cr(v)):'–')+'</span><span class="bw"><span class="bar b'+i+'" style="height:'+(v>0?Math.max(v/mx*100,1.5):0)+'%"></span></span><span class="lab">'+lab[i].replace(' days','<br>days')+'</span><span class="pc c'+i+'">'+(share>0&&share<.01?'<1%':Math.round(share*100)+'%')+'</span></div>'}).join('');
-  document.querySelectorAll('#age [data-ai]').forEach(el=>{const t=()=>openAge(+el.dataset.ai);el.addEventListener('click',t);el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();t()}})});
+  document.querySelectorAll('#age [data-ai]').forEach(el=>{const t=()=>openAgeIn(+el.dataset.ai);el.addEventListener('click',t);el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();t()}})});
   $('#agenote').innerHTML=m.old>0.5?'<div class="alert"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg><span><b>'+cr(m.old)+'</b> ('+pc(m.old/Math.max(1,m.age.slice(0,n).reduce((x,y)=>x+Math.max(y,0),0)))+') of outstanding is more than 30 days past invoice date.</span></div>':'<p class="note">'+(m.owed>0.5?'Nothing is more than 30 days past invoice date.':'Nothing outstanding for this selection.')+'</p>';
 }
 
@@ -552,12 +583,12 @@ function renderMonthly(m){
   win.forEach((k,i)=>{
     const x=Lm+step*i;
     if(i%skip===(last%skip))s+='<text x="'+(x+step/2)+'" y="'+(H-5)+'" text-anchor="middle">'+ymLabel(k)+'</text>';
-    s+='<rect x="'+x+'" y="'+Tm+'" width="'+step+'" height="'+(ph+Bm)+'" fill="transparent" tabindex="0" data-ym="'+k+'" style="cursor:pointer" role="button" aria-label="Week-wise breakup for '+ymLabel(k)+'" data-tip="'+esc(ymLabel(k)+'<br>Paid '+cr(vals[i])+'<br>Running total '+cr(cum[i])+'<br>Click for week-wise breakup')+'"/>';
+    s+='<rect x="'+x+'" y="'+Tm+'" width="'+step+'" height="'+(ph+Bm)+'" fill="transparent" tabindex="0" data-ym="'+k+'" style="cursor:pointer" role="button" aria-label="Weeks of '+ymLabel(k)+'" data-tip="'+esc(ymLabel(k)+'<br>Paid '+cr(vals[i])+'<br>Running total '+cr(cum[i])+'<br>Click for week-wise breakup')+'"/>';
   });
   box.innerHTML=s+'</svg>';
-  box.querySelectorAll('rect[data-ym]').forEach(r=>{r.addEventListener('click',()=>openWeek(r.dataset.ym));r.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openWeek(r.dataset.ym)}})});
+  box.querySelectorAll('rect[data-ym]').forEach(r=>{r.addEventListener('click',()=>pickMonth(r.dataset.ym));r.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pickMonth(r.dataset.ym)}})});
   const totalPaid=sorted.reduce((s,q)=>s+m.pay.get(q),0),pkShare=totalPaid>0?vals[pk]/totalPaid:0;
-  foot.innerHTML='<span><b>Running total paid '+cr(cum[cum.length-1])+'</b></span><span>Peak '+ymLabel(win[pk])+' at '+cr(vals[pk])+' ('+pc(pkShare)+' of dated payments)</span>'+(m.undated>0?'<span>'+cr(m.undated)+' paid has no date, not shown</span>':'')+'<span class="hint">Click a month for the week-wise breakup</span>';
+  foot.innerHTML='<span><b>Running total paid '+cr(cum[cum.length-1])+'</b></span><span>Peak '+ymLabel(win[pk])+' at '+cr(vals[pk])+' ('+pc(pkShare)+' of dated payments)</span>'+(m.undated>0?'<span>'+cr(m.undated)+' paid has no date, not shown</span>':'')+'<span class="hint">Click a month to see its weeks</span>';
 }
 function segBind(id,get,set){document.querySelectorAll(id+' button').forEach(b=>b.addEventListener('click',()=>{set(b.dataset.m);document.querySelectorAll(id+' button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));render()}))}
 segBind('#catseg',()=>catMode,v=>catMode=v);segBind('#ageseg',()=>ageMode,v=>ageMode=v);segBind('#monseg',()=>monMode,v=>monMode=v);
@@ -715,6 +746,79 @@ function renderAgeDr(){
   document.querySelectorAll('#dr-b .more').forEach(b=>b.addEventListener('click',()=>{dr.open[b.dataset.k]=!dr.open[b.dataset.k];renderDr()}));
 }
 function openAge(i){dr={k:'',v:'ven',open:{},week:'',age:i};$('#dr').hidden=false;$('#dr-bg').hidden=false;renderDr();$('#dr-x').focus()}
+
+/* ---------- In-tile age breakup ---------- */
+const AG={i:null,open:{}};
+function openAgeIn(i){AG.i=i;AG.open={};renderAgeIn()}
+function closeAgeIn(){AG.i=null;$('#agedet').hidden=true;$('#agedet').closest('.panel').classList.remove('det')}
+function renderAgeIn(){
+  const lab=['0–30 days','31–60 days','61–90 days','Over 90 days','No date'],ref=refISO(),rs=filtered(),i=AG.i,box=$('#agedet');
+  const bk=r=>{if(!r.d)return 4;const g=dayDiff(ref,r.d);return g<=30?0:g<=60?1:g<=90?2:3};
+  const L=rs.filter(r=>r.due-r.x-r.p>0.5).map(r=>({r,o:r.due-r.x-r.p,b:bk(r),g:r.d?dayDiff(ref,r.d):null}));
+  const tot=[0,0,0,0,0],cnt=[0,0,0,0,0];L.forEach(x=>{tot[x.b]+=x.o;cnt[x.b]++});
+  const sel=L.filter(x=>x.b===i),sum=tot[i],all=tot.reduce((a,b)=>a+b,0)||1;
+  const vg=new Map();sel.forEach(x=>{const k=x.r.v.toLowerCase(),o=vg.get(k)||{n:x.r.v,owed:0,cats:new Set(),rs:[]};o.owed+=x.o;o.cats.add(x.r.c||'Uncategorised');o.rs.push(x);vg.set(k,o)});
+  const vl=[...vg.entries()].sort((a,b)=>b[1].owed-a[1].owed),vsh=AG.open.av?vl:vl.slice(0,8);
+  const cg=new Map();sel.forEach(x=>{const k=x.r.c||'Uncategorised';cg.set(k,(cg.get(k)||0)+x.o)});
+  const cl=[...cg.entries()].sort((a,b)=>b[1]-a[1]),cm=cl.length?cl[0][1]:1,csh=AG.open.ac?cl:cl.slice(0,4);
+  let h='<div class="pdh"><button type="button" class="back" id="agback">← Back</button><b>'+lab[i]+'</b><span>'+cr(sum)+'</span></div>';
+  h+='<div class="seg" role="group" aria-label="Age">'+[0,1,2,3,4].filter(k=>cnt[k]||k===i).map(k=>'<button type="button" data-ai="'+k+'" aria-pressed="'+(k===i)+'">'+lab[k].replace(' days','d')+'</button>').join('')+'</div>';
+  h+='<div class="pst"><span><b>'+sel.length+'</b> invoices</span><span><b>'+vg.size+'</b> vendors</span><span><b>'+Math.round(sum/all*100)+'%</b> of outstanding</span>'+(sel.length&&i<4?'<span>oldest <b>'+Math.max(...sel.map(x=>x.g))+' d</b></span>':'')+'</div>';
+  if(cl.length){h+='<div>';csh.forEach(([k,v])=>{h+='<div class="pr"><span class="pn">'+esc(k)+'</span><span class="pb"><i style="width:'+Math.max(2,v/cm*100).toFixed(1)+'%;background:var(--owed)"></i></span><b>'+cr(v)+'</b></div>'});
+    if(cl.length>4)h+='<button type="button" class="more" data-k="ac" style="width:100%;margin-top:4px">'+(AG.open.ac?'Show less':'+'+(cl.length-4)+' more categories')+'</button>';h+='</div>'}
+  if(!vl.length)h+='<p class="wempty">Nothing outstanding here</p>';
+  vsh.forEach(([k,o])=>{
+    const key='a|'+k,all2=AG.open[key],rl=o.rs.sort((a,b)=>b.o-a.o),list=all2?rl:rl.slice(0,6),cl2=[...o.cats];
+    h+='<div class="vt"><div class="vh"><b>'+esc(niceName(o.n))+'</b><em>'+esc(cl2.length>1?'Mixed':cl2[0])+'</em></div><div class="va">'+cr(o.owed)+'</div>'+sbar(0,0,o.owed,0)+'<div class="ig" style="margin-top:8px">';
+    list.forEach(x=>{const r=x.r;h+='<div class="it st-'+(x.g!=null&&x.g>90?'open':'part')+'" title="'+esc((r.t||'')+' · invoiced '+cr(r.i||0)+(r.x?' · TDS '+cr(r.x):'')+' · paid '+cr(r.p))+'"><div class="ih"><span>'+esc(r.n||'–')+'</span><em>'+esc(fdate(r.d))+'</em></div><b>'+cr(x.o)+'</b>'+sbar(r.p+r.x,0,x.o,0)+'<u>'+(x.g!=null?x.g+' days':'No date')+'</u></div>'});
+    if(rl.length>6)h+='<button type="button" class="more" data-k="'+esc(key)+'">'+(all2?'Show less':'+'+(rl.length-6)+' more')+'</button>';
+    h+='</div></div>'});
+  if(vl.length>8)h+='<button type="button" class="more" data-k="av" style="width:100%">'+(AG.open.av?'Show less':'+'+(vl.length-8)+' more vendors')+'</button>';
+  box.innerHTML=h;box.hidden=false;box.closest('.panel').classList.add('det');
+  $('#agback').addEventListener('click',closeAgeIn);
+  box.querySelectorAll('[data-ai]').forEach(b=>b.addEventListener('click',()=>{AG.i=+b.dataset.ai;AG.open={};renderAgeIn();box.scrollTop=0}));
+  box.querySelectorAll('.more').forEach(b=>b.addEventListener('click',()=>{AG.open[b.dataset.k]=!AG.open[b.dataset.k];renderAgeIn()}));
+}
+
+/* ---------- Week-wise payments tile ---------- */
+let WKM='',WK=null;
+const MFULL=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const mFull=k=>MFULL[+k.slice(5)-1]+' '+k.slice(0,4);
+function wkCompute(rs,ym){
+  return weekBlocks(ym).map(([a,b])=>{
+    const lo=ym+'-'+pad(a),hi=ym+'-'+pad(b),w={a,b,out:0,n:0,pv:new Map()};
+    rs.forEach(r=>{const te=r.y.reduce((t,e)=>t+e[1],0),tk=te>0?(r.x||0)/te:0;
+      r.y.forEach(([d,q])=>{if(d&&d>=lo&&d<=hi){const v=q*(1+tk);w.out+=v;w.n++;const k=r.v.toLowerCase(),o=w.pv.get(k)||{n:r.v,amt:0,c:0};o.amt+=v;o.c++;w.pv.set(k,o)}})});
+    return w});
+}
+function pickMonth(ym){WKM=ym;WK=null;renderWk();const p=$('#wkpanel');p.scrollIntoView({block:'nearest',behavior:'smooth'});p.classList.remove('flash');void p.offsetWidth;p.classList.add('flash')}
+function renderWk(){
+  const rs=filtered(),set=new Set();rs.forEach(r=>r.y.forEach(([d])=>{if(d)set.add(d.slice(0,7))}));
+  const list=[...set].sort().reverse(),sel=$('#wkmon');
+  if(!list.length){$('#wkh').textContent='Week-wise payments';sel.innerHTML='';$('#wkchart').innerHTML='<p class="wempty">No payments yet</p>';$('#wklist').innerHTML='';return}
+  if(!list.includes(WKM)){const ref=refISO(),y=+ref.slice(0,4),m=+ref.slice(5,7),pk=(m===1?y-1:y)+'-'+pad(m===1?12:m-1);WKM=list.includes(pk)?pk:list[0];WK=null}
+  sel.innerHTML=list.map(k=>'<option value="'+k+'"'+(k===WKM?' selected':'')+'>'+mFull(k)+'</option>').join('');
+  const W=wkCompute(rs,WKM);
+  if(WK==null||WK>=W.length){let k=0;W.forEach((w,i)=>{if(w.out>0)k=i});WK=k}
+  const tot=W.reduce((t,w)=>t+w.out,0),nn=W.reduce((t,w)=>t+w.n,0);
+  $('#wkh').textContent='Week-wise payments · '+mFull(WKM);
+  const CW=Math.max(220,Math.min(420,($('#wkchart').clientWidth||300))),CH=150,L=4,n=W.length,gw=(CW-2*L)/n,bw=Math.min(36,gw-12),top=20,bot=CH-30,mx=Math.max(1,...W.map(w=>w.out));
+  let svg='<svg viewBox="0 0 '+CW+' '+CH+'" role="img" aria-label="Payments by week">';
+  W.forEach((w,i)=>{const gx=L+i*gw,cx=gx+gw/2,hh=w.out>0?Math.max(2,(bot-top)*w.out/mx):0,on=i===WK;
+    svg+='<g class="wg" data-w="'+i+'" tabindex="0" role="button" aria-label="Week '+(i+1)+'"><title>W'+(i+1)+' · '+cr(w.out)+' · '+w.n+' payments</title><rect x="'+(gx+1)+'" y="1" width="'+(gw-2)+'" height="'+(CH-2)+'" rx="8" class="wbg'+(on?' on':'')+'"/>'
+     +(hh?'<rect x="'+(cx-bw/2)+'" y="'+(bot-hh).toFixed(1)+'" width="'+bw+'" height="'+hh.toFixed(1)+'" rx="3" style="fill:var(--accent);opacity:'+(on?1:.62)+'"/><text x="'+cx+'" y="'+(bot-hh-4).toFixed(1)+'" text-anchor="middle" class="wl">'+cr(w.out)+'</text>':'')
+     +'<line x1="'+(gx+6)+'" x2="'+(gx+gw-6)+'" y1="'+bot+'" y2="'+bot+'" class="wax"/><text x="'+cx+'" y="'+(bot+14)+'" text-anchor="middle" class="wk1'+(on?' on':'')+'">W'+(i+1)+'</text><text x="'+cx+'" y="'+(bot+26)+'" text-anchor="middle" class="wl2">'+w.a+'–'+w.b+'</text></g>'});
+  svg+='</svg>';
+  $('#wkchart').innerHTML='<div class="wkm"><b>'+cr(tot)+'</b> paid · '+nn+' payments</div>'+svg;
+  const cw=W[WK],pv=[...cw.pv.values()].sort((a,b)=>b.amt-a.amt),pm=pv.length?pv[0].amt:1;
+  let h='<div class="wlh"><span>W'+(WK+1)+' · '+cw.a+'–'+cw.b+' '+MON[+WKM.slice(5)-1]+'</span><b>'+cr(cw.out)+'</b></div>';
+  if(!pv.length)h+='<p class="wempty">No payments this week</p>';
+  pv.forEach(o=>{h+='<div class="pr" title="'+o.c+' payment'+(o.c>1?'s':'')+'"><span class="pn">'+esc(niceName(o.n))+'</span><span class="pb"><i style="width:'+Math.max(2,o.amt/pm*100).toFixed(1)+'%"></i></span><b>'+cr(o.amt)+'</b></div>'});
+  $('#wklist').innerHTML=h;
+  document.querySelectorAll('#wkchart .wg').forEach(el=>{const t=()=>{WK=+el.dataset.w;renderWk()};el.addEventListener('click',t);el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();t()}})});
+}
+$('#wkmon').addEventListener('change',e=>{WKM=e.target.value;WK=null;renderWk()});
+
 function openWeek(ym){dr={k:'',v:'ven',open:{},week:ym,wk:null};$('#dr').hidden=false;$('#dr-bg').hidden=false;renderDr();$('#dr-x').focus()}
 function renderDr(){
   $('#dr .drbar').hidden=!!dr.week||dr.age!=null;
@@ -789,6 +893,8 @@ function render(){
   headText(rs);
   renderKpis(m,rs.length);renderCats(m);renderAge(m);renderMonthly(m);renderTable(m);if(SHOW_BUDGET)renderDonut(m);
   if(!$('#dr').hidden)renderDr();
+  if(AG.i!=null)renderAgeIn();
+  renderWk();
 }
 
 
