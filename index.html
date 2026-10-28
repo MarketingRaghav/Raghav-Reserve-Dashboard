@@ -172,7 +172,8 @@ td input{font:inherit;font-size:12px;width:62px;height:calc(var(--row) - 6px);te
   .row4{grid-template-columns:minmax(0,2.2fr) minmax(0,1fr)}
   .row4.nobud{grid-template-columns:minmax(0,1fr)}
 }
-@media (min-width:1000px) and (min-height:620px){
+@media (min-width:1000px) and (max-height:749px){.age{min-height:210px}#mcol{min-height:210px;flex:none}.row4>.panel{height:330px}.row3>.panel:first-child .scroll,#cats{max-height:260px}}
+@media (min-width:1000px) and (min-height:750px){
   html,body{height:100%;overflow:hidden}
   .wrap{height:100%;padding-block:10px;display:grid;grid-template-rows:auto auto minmax(0,1.1fr) minmax(0,1fr)}
   .row{min-height:0}
